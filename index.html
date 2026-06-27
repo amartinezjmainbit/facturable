@@ -992,6 +992,7 @@ function setTheme(t) {
     if (el) el.classList.toggle('active', k === t);
   });
   if (lastParsed) renderGauges(viewData);
+  if (lastParsed && viewData && viewData.length) buildChartStatus(viewData);
   Object.values(charts).forEach(c => { try { c.update('none'); } catch(e){} });
   closeUserPanel();
 }
@@ -1642,6 +1643,7 @@ function buildChartStacked(projects) {
 /* ── CHART: DONUT STATUS ── */
 function buildChartStatus(projects) {
   if (charts.status) { charts.status.destroy(); charts.status = null; }
+  const legendColor = getComputedStyle(document.documentElement).getPropertyValue('--t1').trim() || '#e2e8f0';
   const buckets = [
     { label:'Completo',       color:C.green, count: projects.filter(p => p.avance>=1).length },
     { label:'Alta cobertura', color:C.cyan,  count: projects.filter(p => p.avance>=0.7&&p.avance<1).length },
@@ -1651,7 +1653,7 @@ function buildChartStatus(projects) {
   const total = projects.length;
   const ctx   = document.getElementById('chart-status').getContext('2d');
 
-  let centerState = { label: 'Proyectos', value: total, color: '#f1f5f9' };
+  let centerState = { label: 'Proyectos', value: total, color: legendColor };
 
   const centerPlugin = {
     id: 'donutCenter',
@@ -1689,19 +1691,19 @@ function buildChartStatus(projects) {
           const i = els[0].index;
           centerState = { label: buckets[i].label, value: buckets[i].count, color: buckets[i].color };
         } else {
-          centerState = { label: 'Proyectos', value: total, color: '#f1f5f9' };
+          centerState = { label: 'Proyectos', value: total, color: legendColor };
         }
       },
       plugins: {
         legend: {
           position: 'bottom',
           labels: {
-            color: '#e2e8f0', font: { size: 9, family: 'DM Sans' }, boxWidth: 10, padding: 8,
+            color: legendColor, font: { size: 9, family: 'DM Sans' }, boxWidth: 10, padding: 8,
             generateLabels(chart) {
               return buckets.map((b, i) => ({
                 text: `${b.label}   ${b.count}   ${(b.count/total*100).toFixed(0)}%`,
                 fillStyle: b.color, strokeStyle: 'transparent', lineWidth: 0, index: i,
-                fontColor: '#e2e8f0',
+                fontColor: legendColor,
               }));
             }
           }
