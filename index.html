@@ -64,6 +64,8 @@
 }
 [data-theme="gray"] #topbar,[data-theme="gray"] #kpi-strip{background:#0e0e0e;}
 [data-theme="gray"] .tf-select{background:#1e1e1e;border-color:#383838;}
+[data-theme="gray"] .chart-tt{background:rgba(10,10,10,.97);border-color:#383838;}
+[data-theme="gray"] .ctt-div{background:#2a2a2a;}
 
 body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--t1);font-size:13px;overflow:hidden;height:100vh;}
 
@@ -508,6 +510,54 @@ tbody tr[data-nombre]:hover{background:rgba(99,102,241,.07);}
   white-space:pre-wrap;word-break:break-word;
   border-left:3px solid #f59e0b;
 }
+
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+  body{overflow-y:auto;height:auto;}
+  #app{height:auto;min-height:100svh;overflow:visible;}
+
+  /* Topbar — ocultar filtros, fecha, a11y */
+  #topbar{height:50px;min-height:50px;padding:0 10px;gap:6px;}
+  .tlogo{height:30px;}
+  .tfilters{display:none;}
+  .a11y-wrap{display:none;}
+  .today-badge{display:none;}
+  .tspacer{display:none;}
+  .ttitle-main{font-size:11px;}
+  .ttitle-sub{display:none;}
+
+  /* KPI strip — dos filas apiladas */
+  #kpi-strip{grid-template-columns:1fr;height:auto;overflow-x:hidden;}
+  .kpi-center{overflow-x:auto;justify-content:flex-start;padding:0 6px;height:52px;}
+  .kpi-center::-webkit-scrollbar{height:2px;}
+  .kstat-mode{padding:0 6px 0 4px;}
+  .kbb{border-left:none;border-top:1px solid rgba(245,158,11,.22);height:48px;
+       justify-content:flex-start;padding:0 14px;overflow-x:auto;}
+  .kbb::-webkit-scrollbar{height:2px;}
+
+  /* Layout — columna única */
+  #body{flex-direction:column;overflow:visible;}
+  #main{flex-direction:column;overflow:visible;}
+  #scroll{overflow-y:visible;padding:8px;gap:8px;padding-bottom:24px;}
+  .right{display:none;}
+
+  /* Hero gauges — 2×2 */
+  #hero-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+  .gauge-card{padding:10px 4px 8px;}
+
+  /* Charts — columna única */
+  .r2{flex-direction:column;}
+  .r2>.col-stacked,.r2>.col-donut{flex:unset;min-width:unset;}
+
+  /* Ocultar tabla */
+  #card-table{display:none;}
+
+  /* Upload — ancho fluido */
+  .up-box{width:calc(100vw - 40px);padding:28px 20px;}
+
+  /* User panel — ancho completo */
+  #user-panel{width:calc(100vw - 28px);right:14px;}
+}
 </style>
 </head>
 <body>
@@ -627,10 +677,12 @@ tbody tr[data-nombre]:hover{background:rgba(99,102,241,.07);}
         <div class="kstat-val kv-cyan" id="s-ent">—</div>
         <div class="kstat-lbl">Entregados</div>
       </div>
+      <div class="kstat-sep"></div>
       <div class="kstat ka-amber">
         <div class="kstat-val kv-amber" id="s-porimpl">—</div>
         <div class="kstat-lbl">Por Impl.</div>
       </div>
+      <div class="kstat-sep"></div>
       <div class="kstat ka-green">
         <div class="kstat-val kv-green" id="s-impl">—</div>
         <div class="kstat-lbl">Implementados</div>
@@ -640,6 +692,7 @@ tbody tr[data-nombre]:hover{background:rgba(99,102,241,.07);}
         <div class="kstat-val kv-indigo" id="s-fact">—</div>
         <div class="kstat-lbl">Facturables</div>
       </div>
+      <div class="kstat-sep"></div>
       <div class="kstat ka-green">
         <div class="kstat-val kv-green" id="s-avance">—</div>
         <div class="kstat-lbl">Avance Global</div>
@@ -751,7 +804,7 @@ tbody tr[data-nombre]:hover{background:rgba(99,102,241,.07);}
         </div>
 
         <!-- TABLE -->
-        <div class="card">
+        <div class="card" id="card-table">
           <div class="ctitle" style="justify-content:space-between;flex-wrap:wrap;gap:6px;">
             <span style="display:flex;align-items:center;gap:5px;">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1681,7 +1734,7 @@ function buildChartStatus(projects) {
         data: buckets.map(b => b.count),
         backgroundColor:      buckets.map(b => b.color + '99'),
         hoverBackgroundColor: buckets.map(b => b.color),
-        borderWidth: 3, borderColor: 'transparent', hoverBorderColor: 'transparent',
+        borderWidth: 2, borderColor: 'rgba(255,255,255,.08)', hoverBorderColor: 'rgba(255,255,255,.15)',
         hoverOffset: 10,
       }]
     },
@@ -1911,6 +1964,7 @@ document.addEventListener('keydown', e => {
 function ajustarEscala() {
   const BASE = 1440, app = document.getElementById('app');
   if (!app) return;
+  if (window.innerWidth <= 768) { app.style.zoom = ''; app.style.height = ''; return; }
   const scale = window.innerWidth / BASE;
   if (scale > 1.05) { app.style.zoom = scale; app.style.height = (100/scale) + 'vh'; }
   else { app.style.zoom = ''; app.style.height = ''; }
