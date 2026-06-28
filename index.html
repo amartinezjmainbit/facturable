@@ -346,9 +346,11 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .r2>.col-stacked{flex:1.5;min-width:0;display:flex;flex-direction:column;}
 .r2>.col-stacked .chart-scroll-x{flex:1;}
 .r2>.col-donut{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;}
-.chart-scroll-x{overflow-x:auto;overflow-y:hidden;}
-.chart-scroll-x::-webkit-scrollbar{height:3px;}
-.chart-scroll-x::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.chart-scroll-x{overflow-x:auto;overflow-y:hidden;padding-bottom:6px;}
+.chart-scroll-x::-webkit-scrollbar{height:5px;}
+.chart-scroll-x::-webkit-scrollbar-track{background:var(--border);border-radius:3px;opacity:.5;}
+.chart-scroll-x::-webkit-scrollbar-thumb{background:var(--alight);border-radius:3px;opacity:.85;}
+.chart-scroll-x::-webkit-scrollbar-thumb:hover{background:var(--accent);}
 
 /* ── TABLE ── */
 .tbl-wrap{overflow-x:auto;}
@@ -835,8 +837,11 @@ tbody tr[data-nombre]:hover{background:rgba(99,102,241,.07);}
               Detalle por Proyecto
             </span>
             <span id="tbl-count" style="font-size:9px;color:var(--t3);font-weight:500;text-transform:none;letter-spacing:0;margin-right:6px;"></span>
-            <button type="button" class="sort-btn" id="btn-sort-az"     onclick="sortTableAZ()"      title="Ordenar alfabéticamente">A→Z</button>
-            <button type="button" class="sort-btn" id="btn-sort-status" onclick="sortTableByStatus()" title="Ordenar por status">★ Status</button>
+            <span style="display:flex;align-items:center;gap:4px;">
+              <button type="button" class="sort-btn" id="btn-sort-az"     onclick="sortTableAZ()"      title="Ordenar alfabéticamente">A→Z</button>
+              <button type="button" class="sort-btn" id="btn-sort-status" onclick="sortTableByStatus()" title="Ordenar por status">★ Status</button>
+              <button type="button" class="sort-btn" id="btn-sort-vol"    onclick="sortTableByVol()"   title="Ordenar por volumetría">↓ Vol.</button>
+            </span>
           </div>
           <div class="tbl-wrap">
             <table>
@@ -942,7 +947,7 @@ tbody tr[data-nombre]:hover{background:rgba(99,102,241,.07);}
 
   <!-- FOOTER -->
   <div id="app-footer">
-    <span>Puesta a Punto 2026 — Almacén</span>
+    <span>Puesta a Punto 2026</span>
     <span class="af-dot">·</span>
     <span>© Mainbit · Todos los derechos reservados</span>
   </div>
@@ -1008,8 +1013,9 @@ let fontScale = 1;
 let allData   = [];
 let viewData  = [];
 let sortCol   = 6, sortDir = -1;
-let charts    = {};
-let lastParsed= null;
+let charts      = {};
+let lastParsed  = null;
+let stackedSort = 'vol';
 
 /* ── TODAY DATE ── */
 (function() {
@@ -1381,11 +1387,11 @@ function renderAll(parsed, projects) {
     </div>`).join('');
 
   /* Charts — tabla ordenada A→Z por defecto */
+  stackedSort = 'az';
   projects.sort((a,b) => a.nombre.localeCompare(b.nombre,'es'));
   viewData = projects;
   renderTable(projects);
-  document.getElementById('btn-sort-az')?.classList.add('active');
-  document.getElementById('btn-sort-status')?.classList.remove('active');
+  setSortActive('btn-sort-az');
   buildChartAvance(projects);
   buildChartStacked(projects);
   buildChartStatus(projects);
@@ -1636,7 +1642,12 @@ function buildChartAvance(projects) {
 /* ── CHART: STACKED COLUMNS ── */
 function buildChartStacked(projects) {
   if (charts.stacked) { charts.stacked.destroy(); charts.stacked = null; }
-  const sorted = [...projects].sort((a,b) => b.vol - a.vol);
+  const rank = p => p.avance >= 1 ? 0 : p.avance >= 0.7 ? 1 : p.avance > 0 ? 2 : 3;
+  const sorted = [...projects].sort(
+    stackedSort === 'az'     ? (a,b) => a.nombre.localeCompare(b.nombre,'es') :
+    stackedSort === 'status' ? (a,b) => rank(a) - rank(b) || b.avance - a.avance :
+                               (a,b) => b.vol - a.vol
+  );
   const minW   = Math.max(500, sorted.length * 42 + 60);
   document.getElementById('chart-stacked-wrap').style.width = minW + 'px';
   const ctx = document.getElementById('chart-stacked').getContext('2d');
@@ -1840,22 +1851,34 @@ function sortTable(col) {
     const av = a[keys[col]], bv = b[keys[col]];
     return typeof av === 'number' ? (av-bv)*sortDir : String(av).localeCompare(String(bv))*sortDir;
   });
-  document.getElementById('btn-sort-az')?.classList.remove('active');
-  document.getElementById('btn-sort-status')?.classList.remove('active');
+  setSortActive('');
   renderTable(viewData);
+}
+function setSortActive(id) {
+  ['btn-sort-az','btn-sort-status','btn-sort-vol'].forEach(k =>
+    document.getElementById(k)?.classList.toggle('active', k === id));
 }
 function sortTableAZ() {
+  stackedSort = 'az';
   viewData.sort((a,b) => a.nombre.localeCompare(b.nombre,'es'));
   renderTable(viewData);
-  document.getElementById('btn-sort-az')?.classList.add('active');
-  document.getElementById('btn-sort-status')?.classList.remove('active');
+  if (lastParsed) buildChartStacked(viewData);
+  setSortActive('btn-sort-az');
 }
 function sortTableByStatus() {
+  stackedSort = 'status';
   const rank = p => p.avance >= 1 ? 0 : p.avance >= 0.7 ? 1 : p.avance > 0 ? 2 : 3;
   viewData.sort((a,b) => rank(a) - rank(b) || b.avance - a.avance);
   renderTable(viewData);
-  document.getElementById('btn-sort-status')?.classList.add('active');
-  document.getElementById('btn-sort-az')?.classList.remove('active');
+  if (lastParsed) buildChartStacked(viewData);
+  setSortActive('btn-sort-status');
+}
+function sortTableByVol() {
+  stackedSort = 'vol';
+  viewData.sort((a,b) => b.vol - a.vol);
+  renderTable(viewData);
+  if (lastParsed) buildChartStacked(viewData);
+  setSortActive('btn-sort-vol');
 }
 function filterTable(q) {
   const s  = q.toLowerCase().trim();
