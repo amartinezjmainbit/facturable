@@ -1168,6 +1168,7 @@ function pn(v) {
   const n = parseFloat(String(v).replace(/,/g,''));
   return isNaN(n) ? 0 : n;
 }
+function pni(v) { return Math.round(pn(v)); }
 const SKIP = new Set(['Proyecto','Proyeco','PROYECTO']);
 
 function parseXlDate(fd) {
@@ -1207,8 +1208,8 @@ function parseResumen(wb) {
       const notas0 = String(r[10]??'').trim();
       if (!map.has(key)) map.set(key, {
         nombre:c0, id:c2, avance:c1,
-        vol:pn(r[4]), entregas:pn(r[5]),
-        impl:r[7]==='n/a'?0:pn(r[7]), porImpl:pn(r[8]), fact:pn(r[9]),
+        vol:pni(r[4]), entregas:pni(r[5]),
+        impl:r[7]==='n/a'?0:pni(r[7]), porImpl:pni(r[8]), fact:pni(r[9]),
         fechaCorte: parseXlDate(r[11]),
         firmaUsr:   String(r[12]??'').trim(),
         firmaIng:   String(r[13]??'').trim(),
@@ -1219,18 +1220,18 @@ function parseResumen(wb) {
       /* The header row often doubles as the first perfil row — capture it */
       const p0 = map.get(key);
       const perfil0 = String(r[3]??'').trim();
-      const vol0    = pn(r[4]);
+      const vol0    = pni(r[4]);
       if (perfil0 && vol0 > 0) {
         if (!p0.perfiles) p0.perfiles = [];
         if (!p0.perfiles.some(x => x.perfil === perfil0)) {
           p0.perfiles.push({
             perfil: perfil0,
             vol:     vol0,
-            ent:     pn(r[5]),
+            ent:     pni(r[5]),
             eta:     String(r[6]??'').trim(),
-            impl:    r[7]==='n/a'?0:pn(r[7]),
-            porImpl: pn(r[8]),
-            fact:    pn(r[9]),
+            impl:    r[7]==='n/a'?0:pni(r[7]),
+            porImpl: pni(r[8]),
+            fact:    pni(r[9]),
             notas:   notas0,
             firmaUsr: String(r[12]??'').trim(),
             firmaIng: String(r[13]??'').trim(),
@@ -1250,12 +1251,12 @@ function parseResumen(wb) {
 
     if ((isTot || isAgg) && map.has(curKey)) {
       const p = map.get(curKey);
-      const v4 = pn(r[4]);
+      const v4 = pni(r[4]);
       if (v4 > 0) p.vol = v4;
-      p.entregas = pn(r[5]);
-      p.impl     = (r[7] === 'n/a' || r[7] === '') ? 0 : pn(r[7]);
-      p.porImpl  = pn(r[8]);
-      p.fact     = pn(r[9]);
+      p.entregas = pni(r[5]);
+      p.impl     = (r[7] === 'n/a' || r[7] === '') ? 0 : pni(r[7]);
+      p.porImpl  = pni(r[8]);
+      p.fact     = pni(r[9]);
       if (!p.fechaCorte) p.fechaCorte = parseXlDate(r[11]);
       if (r[12] && !p.firmaUsr) p.firmaUsr = String(r[12]).trim();
       if (r[13] && !p.firmaIng) p.firmaIng = String(r[13]).trim();
@@ -1276,12 +1277,12 @@ function parseResumen(wb) {
         const notas = String(r[10] ?? '').trim();
         p.perfiles.push({
           perfil,
-          vol:     pn(r[4]),
-          ent:     pn(r[5]),
+          vol:     pni(r[4]),
+          ent:     pni(r[5]),
           eta:     String(r[6] ?? '').trim(),
-          impl:    r[7] === 'n/a' ? 0 : pn(r[7]),
-          porImpl: pn(r[8]),
-          fact:    pn(r[9]),
+          impl:    r[7] === 'n/a' ? 0 : pni(r[7]),
+          porImpl: pni(r[8]),
+          fact:    pni(r[9]),
           notas,
           firmaUsr: String(r[12]??'').trim(),
           firmaIng: String(r[13]??'').trim(),
@@ -1331,6 +1332,14 @@ function renderAll(parsed, projects) {
   const pctEnt  = totVol > 0 ? totEnt  / totVol : 0;
   const pctPend = totEnt  > 0 ? totPend / totEnt  : 0;
   const pctFactVol = totVol > 0 ? totFact / totVol : 0;
+
+  /* Diagnóstico: proyectos con facturables > implementados */
+  const anomalos = projects.filter(p => p.fact > p.impl);
+  if (anomalos.length) {
+    console.group(`⚠️ Proyectos con fact > impl (${anomalos.length})`);
+    anomalos.forEach(p => console.log(`  ${p.nombre}: fact=${p.fact}, impl=${p.impl}, diff=+${p.fact - p.impl}`));
+    console.groupEnd();
+  }
 
   /* Gauges */
   renderGauges(projects, avPond, pctFact, pctEnt, pctPend, pctFactVol, totImpl, totFact, totPend, totEnt, totVol);
