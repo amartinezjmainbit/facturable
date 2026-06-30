@@ -316,12 +316,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .kpi-group{display:flex;align-items:stretch;justify-content:center;gap:2px;}
 /* Hero rcards: Proyectos + Volumetría */
 .rcard-hero{position:relative;text-align:center;padding:8px 12px;}
-.rcard-hero::after{content:'';position:absolute;top:0;left:10px;right:10px;height:2px;border-radius:0 0 2px 2px;}
 .rcard-hero.rh-cyan{background:rgba(56,189,248,.06);border-color:rgba(56,189,248,.22);}
-.rcard-hero.rh-cyan::after{background:#38bdf8;}
 .rcard-hero.rh-cyan .rcard-val{color:#38bdf8;}
 .rcard-hero.rh-purple{background:rgba(167,139,250,.06);border-color:rgba(167,139,250,.22);}
-.rcard-hero.rh-purple::after{background:#a78bfa;}
 .rcard-hero.rh-purple .rcard-val{color:#a78bfa;}
 .rcard-hero .rcard-val{font-size:calc(20px*var(--fm));display:block;line-height:1.2;margin-bottom:2px;}
 .rcard-hero .rcard-title{letter-spacing:.8px;margin-bottom:3px;}
@@ -1061,6 +1058,8 @@ function applyFilters() {
   const rt = RANGO_TEST[filters.rango]   || (() => true);
   if (filters.estado === 'venta') {
     viewData = allData.filter(p => PROYECTOS_VENTA.includes(p.nombre));
+  } else if (filters.proyecto !== 'all' && PROYECTOS_VENTA.includes(filters.proyecto)) {
+    viewData = allData.filter(p => p.nombre === filters.proyecto);
   } else {
     viewData = allData.filter(p => !PROYECTOS_VENTA.includes(p.nombre) && pt(p) && et(p) && rt(p));
   }
